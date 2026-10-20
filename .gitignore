@@ -1,0 +1,12 @@
+# Data never goes to GitHub (raw downloads, cached pages, built tables)
+data/
+# Local-only code: ACB scraper and anything personal
+personal/
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.idea/
+.vscode/
