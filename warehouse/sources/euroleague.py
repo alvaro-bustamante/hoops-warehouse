@@ -23,6 +23,7 @@ PERIOD_KEYS = ["FirstQuarter", "SecondQuarter", "ThirdQuarter", "ForthQuarter", 
 
 ACTION_MAP = {
     "2FGM": "fg2_made", "2FGA": "fg2_missed", "3FGM": "fg3_made", "3FGA": "fg3_missed",
+    "2FGAB": "fg2_missed", "3FGAB": "fg3_missed",          # blocked shots (older seasons)
     "FTM": "ft_made", "FTA": "ft_missed",
     "O": "orb", "D": "drb", "AS": "ast", "TO": "tov", "ST": "stl", "FV": "blk", "AG": "blk_against",
     "CM": "foul", "OF": "foul_offensive", "CMU": "foul_unsportsmanlike", "CMT": "foul_technical",

@@ -26,6 +26,8 @@ def _period_starters(ev: pd.DataFrame, team: str, previous_end: list[str]) -> tu
     opening = ev[(ev["action"] == "sub_in") & (ev["clock_s"] >= ev["clock_s"].max())]["player_id"].tolist() \
         if len(ev) else []                       # e.g. ACB lists the starting five as entries
     note = None
+    if len(set(opening)) == 5:          # the feed lists the starting five explicitly: trust it
+        return [], None                 # (they enter through their own sub_in events)
     if len(starters) < 5:                       # silent starters: carried over from the previous period
         silent = [p for p in previous_end if p not in first]
         starters += silent[:5 - len(starters)]
