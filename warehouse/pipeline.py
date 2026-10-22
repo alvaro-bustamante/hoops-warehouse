@@ -44,6 +44,11 @@ def build_game(events: pd.DataFrame, official_players: pd.DataFrame | None = Non
             gap = (secs.reindex(off.index.get_level_values("player_id")).fillna(0).to_numpy()
                    - off["seconds"].to_numpy())
             report["minutes_max_gap_s"] = float(abs(gap).max()) if len(gap) else 0.0
+            # the official sheet itself can be wrong (e.g. 40 minutes credited to a player who did not play):
+            # its team totals must add up to 5 players x game length
+            expected = 5 * float(ev["elapsed_s"].max())
+            totals = off.groupby(level="team")["seconds"].sum()
+            report["official_minutes_ok"] = bool((totals - expected).abs().max() <= 60)
 
     counted = poss.groupby("offense").size()
     estimate = formula_possessions(box.set_index("team"))

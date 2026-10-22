@@ -79,12 +79,25 @@ def parse_events(doc: dict, competition: str, season: int, game: int) -> pd.Data
     pbp, points = doc["PlayByPlay"], doc.get("Points") or {}
     home = _s(pbp.get("CodeTeamA"))
     shots = {r["NUM_ANOT"]: r for r in points.get("Rows", [])}
-    rows, last_clock = [], 600.0
+    rows, last_clock, last_period = [], 600.0, 1
+    # Some play-by-play files use a temporary code instead of the player's id (e.g. "PJUG"):
+    # map those to the official id through the name in the box score.
+    official = {}
+    for side in (doc.get("Boxscore") or {}).get("Stats", []):
+        for pl in side.get("PlayersStats", []):
+            official[(pl["Team"].strip(), str(pl["Player"]).strip().upper())] = pl["Player_ID"].strip()
+    known_ids = set(official.values())
     for key in PERIOD_KEYS:
         for r in pbp.get(key) or []:
             raw = _s(r.get("PLAYTYPE"))
             minute = int(r.get("MINUTE") or 1)
-            period = PERIOD_KEYS.index(key) + 1 if key != "ExtraTime" else 5 + max(minute - 41, 0) // 5
+            if key != "ExtraTime":
+                period = PERIOD_KEYS.index(key) + 1
+            elif raw in ("EP", "EG"):            # end-of-overtime rows carry the next minute (46, 51…)
+                period = last_period
+            else:
+                period = 5 + max(minute - 41, 0) // 5
+            last_period = period
             length = 600 if period <= 4 else 300
             clock = _clock(r.get("MARKERTIME"))
             if clock is None:
@@ -92,6 +105,8 @@ def parse_events(doc: dict, competition: str, season: int, game: int) -> pd.Data
             last_clock = clock
             team = _s(r.get("CODETEAM"))
             player = _s(r.get("PLAYER_ID"))
+            if player is not None and known_ids and player not in known_ids:
+                player = official.get((team, str(r.get("PLAYER") or "").strip().upper()), player)
             action = ACTION_MAP.get(raw, "other")
             if action in ("orb", "drb") and player is None:
                 action = "team_" + action

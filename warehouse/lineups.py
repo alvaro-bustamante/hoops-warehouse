@@ -31,6 +31,14 @@ def _period_starters(ev: pd.DataFrame, team: str, previous_end: list[str]) -> tu
         starters += silent[:5 - len(starters)]
     if len(starters) + len([p for p in opening if p not in starters]) != 5 and len(starters) != 5:
         note = f"{team}: {len(starters)} starters inferred"
+    if len(starters) > 5:
+        # a substitution is missing from the feed: keep the most certain five. First, players whose
+        # first move is leaving the court; then those on court at the end of the previous period;
+        # then the earliest to appear.
+        rank = {p: (0 if first[p] == "sub_out" else 1 if p in previous_end else 2, i)
+                for i, p in enumerate(starters)}
+        starters = sorted(starters, key=lambda p: rank[p])[:5]
+        note += " (kept the 5 most likely)"
     return starters[:5], note
 
 

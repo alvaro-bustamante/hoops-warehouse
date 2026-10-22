@@ -37,7 +37,12 @@ def save(tag: str, results: list[dict], games: list[dict]) -> None:
         print(f"  games matching the official box score exactly: {(rep['box_mismatches'] == 0).sum()}/{len(rep)}")
     print(f"  games with the right final score: {rep['score_ok'].sum()}/{len(rep)}")
     if "minutes_max_gap_s" in rep:
-        print(f"  largest minutes gap vs official (s): {rep['minutes_max_gap_s'].max():.0f}")
+        ok = rep["official_minutes_ok"].fillna(True).astype(bool) if "official_minutes_ok" in rep else True
+        good = rep[ok]
+        print(f"  minutes within 5 s of the official sheet: {(good['minutes_max_gap_s'] <= 5).sum()}/{len(good)} games"
+              f" (largest gap {good['minutes_max_gap_s'].max():.0f} s)")
+        if len(rep) - len(good):
+            print(f"  official sheets with inconsistent minutes (source error, not checked): {len(rep) - len(good)}")
     noted = rep[rep["notes"].astype(str) != "[]"]
     if len(noted):
         print(f"  games with lineup notes: {len(noted)} (see the 'notes' column)")
