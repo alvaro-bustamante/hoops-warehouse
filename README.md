@@ -59,6 +59,14 @@ units), fast-break and second-chance flags (EuroLeague), the raw source code, an
 | `<comp>_<season>_stints.csv.gz` | lineup stint, 5 vs 5 (seconds, points, possessions) / tramo de quinteto |
 | `<comp>_<season>_possessions.csv.gz` | possession (team, start, end, points, how it ended) / posesión |
 | `<comp>_<season>_games.csv` | game, with every check / partido, con todas las comprobaciones |
+| `<comp>_<season>_team_games.csv` | team and game: box score, possessions / equipo y partido |
+| `<comp>_<season>_player_games.csv` | player and game: box score, seconds, +/-, possessions on court / jugador y partido |
+
+**EN** · The two game tables are the layer every app reads (the 2D Explorer, the league translator and
+the scouting reports). Competitions without play-by-play write them directly from box scores
+(`level = "box"`). `python -m warehouse.gametables` rebuilds them for every built season.
+**ES** · Las dos tablas por partido son la capa que leen todas las apps. Las competiciones sin jugada a
+jugada las escriben directamente desde el box score (`level = "box"`).
 
 ## Method / Método
 
@@ -81,6 +89,7 @@ pip install -r requirements.txt
 python -m warehouse.build euroleague --season 2025          # EuroLeague 2025-26, every played game
 python -m warehouse.build eurocup --season 2025 --games 1-20
 python -m warehouse.build nba --season 2025-26 --limit 50
+python -m warehouse.gametables                               # team / player game tables of every built season
 python -m pytest tests                                       # checks on the downloaded games
 ```
 
@@ -96,7 +105,8 @@ Data belong to their owners; check each source's terms before redistributing der
 ## Roadmap
 
 - [x] v0 · Events, lineups, stints, possessions, validation (EuroLeague, EuroCup, NBA)
-- [ ] Assist networks (who assists whom, by lineup) / Redes de asistencias
+- [x] v0.2 · Team and player game tables (minutes, +/-, possessions on court), `lineups_ok` flag
+- [x] Assist pairing (passer → scorer) / Emparejamiento de asistencias
 - [ ] Context factors: score margin, clock, home/away, rest / Factores de contexto
 - [ ] Docker image and scheduled updates / Imagen Docker y actualizaciones programadas
 - [ ] Bayesian lineup ratings (RAPM-lite) / Valoración bayesiana de quintetos

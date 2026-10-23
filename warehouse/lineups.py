@@ -82,13 +82,15 @@ def stints(events: pd.DataFrame) -> pd.DataFrame:
     ev = events.assign(_since=since)[~events["action"].isin(["sub_in", "sub_out"])].copy()
     key = ev["home_on"] + "/" + ev["away_on"] + "/" + ev["period"].astype(str)
     ev["stint"] = (key != key.shift()).cumsum()
+    if "possession_id" in ev:
+        ev["_poss_start"] = ev["possession_id"].notna() & ~ev.duplicated("possession_id")
     home_team = ev.loc[ev["is_home"] == True, "team"].dropna().iloc[0]   # noqa: E712
     away_team = ev.loc[ev["is_home"] == False, "team"].dropna().iloc[0]  # noqa: E712
     rows = []
     for sid, g in ev.groupby("stint"):
         pts = g.groupby("team")["points"].sum()
-        poss = g.dropna(subset=["possession_id"]).drop_duplicates("possession_id").groupby("offense").size() \
-            if "possession_id" in g else pd.Series(dtype=int)
+        # a possession counts for the stint in which it started (not again after a substitution)
+        poss = g[g["_poss_start"]].groupby("offense").size() if "possession_id" in g else pd.Series(dtype=int)
         rows.append({
             "competition": g["competition"].iloc[0], "season": g["season"].iloc[0], "game_id": g["game_id"].iloc[0],
             "stint": int(sid), "period": int(g["period"].iloc[0]),

@@ -10,6 +10,8 @@ Output in data/warehouse/:
     <comp>_<season>_stints.csv.gz       lineup stints (5 vs 5) with points and possessions
     <comp>_<season>_possessions.csv.gz  one row per possession
     <comp>_<season>_games.csv           game list and the checks against the official box score
+    <comp>_<season>_team_games.csv      box score of every team in every game (see gametables.py)
+    <comp>_<season>_player_games.csv    box score of every player in every game, with minutes and +/-
 """
 from __future__ import annotations
 
@@ -43,9 +45,14 @@ def save(tag: str, results: list[dict], games: list[dict]) -> None:
               f" (largest gap {good['minutes_max_gap_s'].max():.0f} s)")
         if len(rep) - len(good):
             print(f"  official sheets with inconsistent minutes (source error, not checked): {len(rep) - len(good)}")
+    if "lineups_ok" in rep:
+        print(f"  games with reliable lineups (for lineup / on-off analyses): {rep['lineups_ok'].sum()}/{len(rep)}")
     noted = rep[rep["notes"].astype(str) != "[]"]
     if len(noted):
         print(f"  games with lineup notes: {len(noted)} (see the 'notes' column)")
+    from . import gametables
+    n_t, n_p = gametables.build(tag, OUT)
+    print(f"  game tables: {n_t} team rows, {n_p} player rows ({tag}_team_games.csv, {tag}_player_games.csv)")
 
 
 def _range(text: str | None) -> list[int] | None:

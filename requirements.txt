@@ -3,3 +3,8 @@ numpy
 requests
 nba_api>=1.4
 pytest
+# local download scripts (personal/): FIBA pages and FEB box scores
+curl_cffi>=0.7
+lxml>=5.0
+html5lib>=1.1
+beautifulsoup4>=4.12

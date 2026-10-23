@@ -26,6 +26,11 @@ def build_game(events: pd.DataFrame, official_players: pd.DataFrame | None = Non
     st = stints(ev)
     poss = possession_table(ev)
     report = {"game_id": ev["game_id"].iloc[0], "events": len(ev), "notes": notes}
+    # lineups are trusted for lineup / on-off analyses when at most 10 plays lack five players a side
+    # (box scores, possessions and player totals do not depend on this)
+    play = ev[~ev["action"].isin(["sub_in", "sub_out", "period_start", "period_end", "game_end", "timeout"])]
+    short = ((play["home_on"].str.count(r"\|") != 4) | (play["away_on"].str.count(r"\|") != 4)).sum()
+    report["lineups_ok"] = bool(short <= 10)
 
     final = ev[["score_home", "score_away"]].iloc[-1]
     box = box_from_events(ev)
