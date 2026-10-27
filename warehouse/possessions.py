@@ -62,7 +62,7 @@ def possession_table(events: pd.DataFrame) -> pd.DataFrame:
     out = pd.DataFrame(rows)
     if len(out):   # a possession starts when the previous one ends (or when the period starts)
         period_start = out["period"].map(lambda q: 600.0 * (q - 1) if q <= 4 else 2400.0 + 300.0 * (q - 5))
-        if (events["competition"] == "nba").any():
+        if (events["competition"].isin(["nba"])).any():          # 12-minute quarters
             period_start = out["period"].map(lambda q: 720.0 * (q - 1) if q <= 4 else 2880.0 + 300.0 * (q - 5))
         prev_end = out.groupby("period")["end_s"].shift(1)
         out["start_s"] = prev_end.fillna(period_start)

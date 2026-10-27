@@ -37,7 +37,7 @@ COLUMNS = [
     "raw_type", "raw_text",
 ]
 
-PERIOD_SECONDS = {"euroleague": (600, 300), "eurocup": (600, 300), "acb": (600, 300), "nba": (720, 300)}
+PERIOD_SECONDS = {"euroleague": (600, 300), "eurocup": (600, 300), "acb": (600, 300), "nba": (720, 300), "wnba": (600, 300)}
 
 
 def elapsed(period: int, clock_s: float, regular: int = 600, overtime: int = 300) -> float:

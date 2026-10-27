@@ -2,7 +2,8 @@
 
     python -m warehouse.build euroleague --season 2025
     python -m warehouse.build eurocup --season 2025 --games 1-40
-    python -m warehouse.build nba --season 2025-26 --limit 100
+    python -m warehouse.build nba --season 2025 --limit 100     # NBA 2025-26
+    python -m warehouse.build wnba --season 2025                # WNBA 2025, regular season + playoffs
 
 Raw downloads are cached in data/raw/ (a second run only reads the disk).
 Output in data/warehouse/:
@@ -88,36 +89,60 @@ def run_euroleague(competition: str, season: int, games: list[int] | None, max_m
     save(f"{competition}_{season}", results, info)
 
 
-def run_nba(season: str, limit: int | None) -> None:
+def run_nba(season: str, limit: int | None, league: str = "nba", playoffs: bool = True, delay: float = 1.0) -> str:
+    """NBA (season "2025-26" or 2025) or WNBA (season 2025). Regular season and playoffs.
+    Saved as <league>_<starting year>_*; downloads are cached in data/raw/<league>/, so an
+    interrupted run continues where it stopped."""
     from .sources import nba
-    games = nba.season_games(season)
+    year = int(str(season)[:4])
+    api_season = (f"{year}-{str(year + 1)[-2:]}" if league == "nba" else str(year))
+    frames = []
+    for kind in ["Regular Season"] + (["Playoffs"] if playoffs else []):
+        g = nba.season_games(api_season, kind, league)
+        if len(g):
+            frames.append(g.assign(season_type=kind))
+    if not frames:
+        print(f"No {league.upper()} games found for {api_season}.")
+        return ""
+    games = pd.concat(frames).drop_duplicates("GAME_ID").sort_values(["GAME_DATE", "GAME_ID"])
     if limit:
         games = games.head(limit)
+    print(f"{league.upper()} {api_season}: {len(games)} games", flush=True)
     results, info = [], []
-    for row in games.itertuples():
+    for i, row in enumerate(games.itertuples(), 1):
         try:
-            doc = nba.fetch_game(row.GAME_ID)
+            doc = nba.fetch_game(row.GAME_ID, Path("data/raw") / league, delay=delay)
             _, players = nba.parse_box(doc)
-            res = build_game(nba.parse_events(doc, season, row.GAME_ID), players)
+            ev = nba.parse_events(doc, year, row.GAME_ID, league)
+            res = build_game(ev, players)
+            ctx = nba.game_context(doc)
         except Exception as exc:  # noqa: BLE001
-            print(f"  {row.GAME_ID}: skipped ({exc})")
+            print(f"  {row.GAME_ID}: skipped ({exc})", flush=True)
             continue
+        home = ev.loc[ev["is_home"] == True, "team"].dropna()  # noqa: E712
+        away = ev.loc[ev["is_home"] == False, "team"].dropna()  # noqa: E712
         results.append(res)
-        info.append({"competition": "nba", "season": season, "game_id": row.GAME_ID, "date": row.GAME_DATE,
-                     "matchup": row.MATCHUP, **res["report"]})
-        print(f"  {row.GAME_ID} {row.MATCHUP} ok")
-    save(f"nba_{season}", results, info)
+        info.append({"competition": league, "season": year, "game_id": row.GAME_ID, "date": row.GAME_DATE,
+                     "season_type": row.season_type, "matchup": row.MATCHUP,
+                     "home": home.iloc[0] if len(home) else None, "away": away.iloc[0] if len(away) else None,
+                     **ctx, **res["report"]})
+        print(f"  [{i}/{len(games)}] {row.GAME_ID} {row.MATCHUP} ok", flush=True)
+    tag = f"{league}_{year}"
+    save(tag, results, info)
+    return tag
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("competition", choices=["euroleague", "eurocup", "nba"])
-    ap.add_argument("--season", required=True, help="2025 for EuroLeague/EuroCup 2025-26; 2025-26 for the NBA.")
+    ap.add_argument("competition", choices=["euroleague", "eurocup", "nba", "wnba"])
+    ap.add_argument("--season", required=True,
+                    help="Starting year: 2025 = EuroLeague/EuroCup/NBA 2025-26; WNBA 2025.")
     ap.add_argument("--games", help="EuroLeague/EuroCup game codes, e.g. 1-40 (default: all played games).")
-    ap.add_argument("--limit", type=int, help="NBA: only the first N games of the season.")
+    ap.add_argument("--limit", type=int, help="NBA/WNBA: only the first N games of the season (a quick test).")
+    ap.add_argument("--no-playoffs", action="store_true", help="NBA/WNBA: regular season only.")
     args = ap.parse_args()
-    if args.competition == "nba":
-        run_nba(args.season, args.limit)
+    if args.competition in ("nba", "wnba"):
+        run_nba(args.season, args.limit, args.competition, playoffs=not args.no_playoffs)
     else:
         run_euroleague(args.competition, int(args.season), _range(args.games))
 

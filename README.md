@@ -90,6 +90,8 @@ python -m warehouse.build euroleague --season 2025          # EuroLeague 2025-26
 python -m warehouse.build eurocup --season 2025 --games 1-20
 python -m warehouse.build nba --season 2025-26 --limit 50
 python -m warehouse.gametables                               # team / player game tables of every built season
+python -m warehouse.history wnba --from 2015 --to 2025       # many WNBA (or NBA) seasons + context + player bios
+python -m warehouse.context wnba_2025                        # rest, travel, time zones, crowd, TV of each team-game
 python -m pytest tests                                       # checks on the downloaded games
 ```
 
@@ -107,7 +109,9 @@ Data belong to their owners; check each source's terms before redistributing der
 - [x] v0 · Events, lineups, stints, possessions, validation (EuroLeague, EuroCup, NBA)
 - [x] v0.2 · Team and player game tables (minutes, +/-, possessions on court), `lineups_ok` flag
 - [x] Assist pairing (passer → scorer) / Emparejamiento de asistencias
-- [ ] Context factors: score margin, clock, home/away, rest / Factores de contexto
+- [x] WNBA and NBA through the same reader (10- and 12-minute quarters), with attendance, arena, officials and
+      national TV per game, game context (rest, travel distance, time zones and direction, road trips, crowd,
+      the 2020 bubbles) and player bios / WNBA y NBA con contexto de cada partido y biografía de jugadoras
 - [ ] Docker image and scheduled updates / Imagen Docker y actualizaciones programadas
 - [ ] Bayesian lineup ratings (RAPM-lite) / Valoración bayesiana de quintetos
 
