@@ -291,7 +291,7 @@ def parse_events(doc: dict, season: str, game_id: str, league: str = "nba") -> p
                 rows.append({**base, **actor, "action": "ast", "player_id": pid, "player_name": m.group(1),
                              "score_home": None, "score_away": None})
         elif at == "Free Throw":
-            made = not desc.upper().startswith("MISS")
+            made = not re.match(r"MISS\b", desc.upper())        # "MISS Missi Free Throw…", not "Missi Free Throw…"
             rows.append({**base, **actor, "action": "ft_made" if made else "ft_missed"})
             last_miss_team = None if made else team
         elif at == "Rebound":

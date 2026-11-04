@@ -24,11 +24,24 @@ nunca se comprueban. Cada partido se valida: los totales deben coincidir exactam
 score oficial, el marcador final también, y los minutos reconstruidos a partir de los cambios deben
 coincidir con los minutos oficiales.
 
-| Check / Comprobación | EuroLeague | EuroCup | NBA |
-|---|---|---|---|
-| Final score / Marcador final | ✅ | ✅ | ✅ |
-| Player box score, every stat / Box score por jugador | ✅ exact | ✅ exact | checked on every build |
-| Minutes per player / Minutos por jugador | ✅ to the second | ✅ to the second | checked on every build |
+| Share of games that pass (2016–2025) / Partidos que pasan | EuroLeague | EuroCup | NBA | WNBA |
+|---|---|---|---|---|
+| Final score / Marcador final | 100% | 100% | 99–100% | 99–100% |
+| Player box score, every stat / Box score por jugador, todo | 100% | 100% | 89–95% | 94–99% |
+| Minutes per player within 1 min / Minutos por jugador a < 1 min | 98–100% | 94–99% | 63–80% | 68–92% |
+
+**EN** · Scores and box scores come straight from the events. Minutes depend on who is on court,
+which is inferred (the NBA and WNBA feeds miss some substitutions, mostly between quarters), so
+lineup and on/off analyses should keep the games flagged `lineups_ok` or filter on
+`minutes_max_gap_s`; improving that inference is the next item of the roadmap.
+**ES** · Marcador y box score salen directamente de los sucesos. Los minutos dependen de quién está
+en pista, que se infiere: para análisis de quintetos conviene filtrar por `lineups_ok` o
+`minutes_max_gap_s`.
+
+Each game's checks are kept in `<comp>_<season>_games.csv`, so every analysis can filter on them
+(`python -m warehouse.sql --file queries/data_quality.sql`). Coverage today: EuroLeague and EuroCup
+2016-17 → today, NBA 2015-16 → today (~14,000 games, regular season and playoffs) and WNBA
+2015 → 2025 (2,531 games).
 
 ## Event format / Formato de sucesos
 
@@ -98,6 +111,53 @@ python -m pytest tests                                       # checks on the dow
 Downloads are cached in `data/raw/`; a second run reads the disk only. `data/` is never committed.
 Las descargas se guardan en `data/raw/`; una segunda ejecución solo lee el disco. `data/` nunca se sube.
 
+## SQL over every league / SQL sobre todas las ligas (DuckDB)
+
+**EN** · `warehouse.sql` exposes every table of every league and season as one DuckDB view
+(`events`, `stints`, `possessions`, `games`, `team_games`, `player_games`, `context`, `players`), with
+`competition` and `season` taken from the file names. Nothing is copied; `--parquet` writes a
+partitioned columnar copy (`competition=…/season=…`) ready for Polars, Spark or a data lake.
+**ES** · `warehouse.sql` expone todas las tablas de todas las ligas y temporadas como vistas de DuckDB,
+sin copiar nada; `--parquet` genera una copia columnar particionada.
+
+```bash
+python -m warehouse.sql                                        # tables and rows
+python -m warehouse.sql --file queries/data_quality.sql        # checks of every league-season
+python -m warehouse.sql --file queries/home_advantage.sql      # home win %, margin and net rating by season
+python -m warehouse.sql --file queries/rest_and_travel.sql     # NBA / WNBA: rest edge, back-to-backs, travel
+python -m warehouse.sql --file queries/top_lineups.sql         # best five-man units of a season
+python -m warehouse.sql "SELECT competition, count(*) FROM possessions GROUP BY ALL"
+python -m warehouse.sql --parquet data/parquet
+```
+
+```python
+from warehouse.sql import connect
+con = connect()
+df = con.sql("SELECT * FROM team_games JOIN context USING (competition, season, game_id, team)").df()
+```
+
+## Docker
+
+```bash
+docker build -t hoops-warehouse .
+docker run --rm -v "$PWD/data:/app/data" hoops-warehouse                     # list the tables
+docker run --rm -v "$PWD/data:/app/data" hoops-warehouse \
+       python -m warehouse.sql --file queries/home_advantage.sql
+docker run --rm hoops-warehouse python -m pytest -q                            # tests
+```
+
+The image holds the code only; the data folder is mounted from the host.
+La imagen solo contiene el código; la carpeta de datos se monta desde fuera.
+
+## Tests
+
+`tests/test_core.py` checks the core on a synthetic game (clock, box score, possessions with
+offensive rebounds and and-ones, lineups, stints and minutes, the validation report, travel distance
+and time zones); `tests/test_sql.py` checks the DuckDB layer; `tests/test_games.py` is a data audit that rebuilds every EuroLeague /
+EuroCup game in `data/raw/` and checks the share that match the official sheets (it runs only with
+`HW_DATA_TESTS=1`, as it takes about half an hour). The unit tests run on every
+push (GitHub Actions, Python 3.11–3.13, and inside the Docker image).
+
 ## Data / Datos
 
 Sources: EuroLeague/EuroCup official live API (`live.euroleague.net`) and NBA Stats through
@@ -112,7 +172,9 @@ Data belong to their owners; check each source's terms before redistributing der
 - [x] WNBA and NBA through the same reader (10- and 12-minute quarters), with attendance, arena, officials and
       national TV per game, game context (rest, travel distance, time zones and direction, road trips, crowd,
       the 2020 bubbles) and player bios / WNBA y NBA con contexto de cada partido y biografía de jugadoras
-- [ ] Docker image and scheduled updates / Imagen Docker y actualizaciones programadas
+- [x] SQL layer (DuckDB, Parquet export), Docker image, tests and CI / Capa SQL, Docker, tests e integración continua
+- [ ] Better lineup inference for the NBA / WNBA feeds (missing substitutions) / Mejor inferencia de quintetos
+- [ ] Scheduled updates / Actualizaciones programadas
 - [ ] Bayesian lineup ratings (RAPM-lite) / Valoración bayesiana de quintetos
 
 ## Author / Autor

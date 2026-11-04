@@ -1,0 +1,10 @@
+data/
+personal/
+results/
+.venv/
+venv/
+.git/
+.idea/
+.vscode/
+**/__pycache__/
+*.pyc
