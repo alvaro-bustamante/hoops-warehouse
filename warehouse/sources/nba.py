@@ -258,9 +258,15 @@ def parse_events(doc: dict, season: str, game_id: str, league: str = "nba") -> p
         if len(nms) == 1 and len(never) == 1:
             names[(team, _key(next(iter(nms))))] = next(iter(never))
 
+    suffix = re.compile(r"[\s,]+(jr\.?|sr\.?|ii|iii|iv|v)$", re.I)
+
     def by_name(team, name):
         name = (name or "").strip()
-        return names.get((team, _key(name)), f"name:{name}")
+        found = names.get((team, _key(name)))
+        if found is None:                        # "Boston Jr." in the text, "Boston" in the roster
+            plain = suffix.sub("", name)
+            found = names.get((team, _key(plain)))
+        return found or f"name:{name}"
 
     rows, last_miss_team, reb_counts = [], None, {}
     for r in pbp.itertuples():
@@ -335,6 +341,11 @@ def parse_events(doc: dict, season: str, game_id: str, league: str = "nba") -> p
             rows.append({**base, **actor, "action": "other"})
     rows.append({**rows[-1], "action": "game_end", "team": None, "is_home": None, "player_id": None,
                  "player_name": None, "raw_type": "game_end", "raw_text": ""})
+    # The feed is not always in time order: a play corrected later (a buzzer-beater reviewed at halftime,
+    # a late-entered substitution) is appended at the end. Order by period and game time, keeping the
+    # feed's order for plays at the same moment (stable sort), so lineups and stints follow the game.
+    order = sorted(range(len(rows)), key=lambda i: (rows[i].get("period") or 0, rows[i].get("elapsed_s") or 0.0, i))
+    rows = [rows[i] for i in order]
     ev = finish(rows)
     for c in ("score_home", "score_away"):          # some feeds write 0 on the last rows: a score never goes down
         ev[c] = ev[c].cummax()

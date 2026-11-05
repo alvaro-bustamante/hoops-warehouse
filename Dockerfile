@@ -15,6 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY warehouse/ warehouse/
 COPY queries/ queries/
+COPY analysis/ analysis/
 COPY tests/ tests/
 COPY README.md LICENSE ./
 

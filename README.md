@@ -111,6 +111,12 @@ python -m pytest tests                                       # checks on the dow
 Downloads are cached in `data/raw/`; a second run reads the disk only. `data/` is never committed.
 Las descargas se guardan en `data/raw/`; una segunda ejecución solo lee el disco. `data/` nunca se sube.
 
+## Analyses built on it / Análisis
+
+- [What the schedule costs in the NBA (2015-16 → 2025-26)](analysis/README.md): a Bayesian hierarchical model
+  of 13,077 games: back-to-backs, rest, density, travel and time zones, home court by season and by arena, and
+  the share of home court that is the crowd (2020-21), with out-of-sample validation.
+
 ## SQL over every league / SQL sobre todas las ligas (DuckDB)
 
 **EN** · `warehouse.sql` exposes every table of every league and season as one DuckDB view
