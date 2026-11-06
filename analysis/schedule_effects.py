@@ -199,6 +199,12 @@ def _matrix(df, schedule, fit_names):
     return M.reindex(columns=fit_names, fill_value=0.0).to_numpy(float)
 
 
+def _norm_cdf(x):
+    """Standard normal CDF without scipy."""
+    from math import erf, sqrt
+    return 0.5 * (1 + np.vectorize(erf)(np.asarray(x, float) / sqrt(2)))
+
+
 def validate(df: pd.DataFrame, holdout: float = 0.25, draws: int = 1500) -> pd.DataFrame:
     """Fit on the first part of each season, predict the last `holdout` share (by date)."""
     rank = df.groupby("season")["date"].rank(pct=True, method="first")
@@ -210,8 +216,7 @@ def validate(df: pd.DataFrame, holdout: float = 0.25, draws: int = 1500) -> pd.D
         fit = gibbs(X, blocks, train["margin"].to_numpy(float), draws=draws, burn=300)
         mu, sd = fit.predict(_matrix(test, schedule, fit.names))
         y = test["margin"].to_numpy(float)
-        from scipy.stats import norm
-        p = np.clip(norm.cdf(mu / sd), 1e-6, 1 - 1e-6)
+        p = np.clip(_norm_cdf(mu / sd), 1e-6, 1 - 1e-6)
         win = (y > 0).astype(float)
         rows.append({"model": label, "games": len(test), "MAE": np.abs(y - mu).mean(),
                      "RMSE": np.sqrt(((y - mu) ** 2).mean()), "Brier": ((p - win) ** 2).mean(),

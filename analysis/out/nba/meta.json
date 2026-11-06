@@ -1,5 +1,5 @@
 {
-  "games": 13077,
+  "games": 13194,
   "seasons": [
     2015,
     2016,
@@ -13,8 +13,8 @@
     2024,
     2025
   ],
-  "residual_sd": 13.07821417947445,
-  "team_strength_sd": 4.597513564286303,
-  "franchise_hca_sd": 0.7810028148087846,
-  "draws": 4000
+  "residual_sd": 13.074356059287027,
+  "team_strength_sd": 4.6093901959909696,
+  "franchise_hca_sd": 0.7730419233518051,
+  "draws": 3000
 }

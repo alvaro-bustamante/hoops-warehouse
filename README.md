@@ -27,16 +27,18 @@ coincidir con los minutos oficiales.
 | Share of games that pass (2016–2025) / Partidos que pasan | EuroLeague | EuroCup | NBA | WNBA |
 |---|---|---|---|---|
 | Final score / Marcador final | 100% | 100% | 99–100% | 99–100% |
-| Player box score, every stat / Box score por jugador, todo | 100% | 100% | 89–95% | 94–99% |
-| Minutes per player within 1 min / Minutos por jugador a < 1 min | 98–100% | 94–99% | 63–80% | 68–92% |
+| Player box score, every stat / Box score por jugador, todo | 100% | 100% | 91–95% | 94–99% |
+| Minutes per player within 1 min / Minutos por jugador a < 1 min | 98–100% | 94–99% | 97–99% | 93–100% |
 
 **EN** · Scores and box scores come straight from the events. Minutes depend on who is on court,
-which is inferred (the NBA and WNBA feeds miss some substitutions, mostly between quarters), so
-lineup and on/off analyses should keep the games flagged `lineups_ok` or filter on
-`minutes_max_gap_s`; improving that inference is the next item of the roadmap.
+which is inferred. In the NBA and WNBA feeds this used to fail when late corrections arrived out of
+order or a name carried a suffix (Jr., III); both are handled now, and lineups pass the check in
+99–100% of games. Lineup and on/off analyses can still filter on `lineups_ok` or
+`minutes_max_gap_s`. The remaining box-score differences are mostly offensive/defensive rebound
+swaps for one player.
 **ES** · Marcador y box score salen directamente de los sucesos. Los minutos dependen de quién está
-en pista, que se infiere: para análisis de quintetos conviene filtrar por `lineups_ok` o
-`minutes_max_gap_s`.
+en pista, que se infiere; en NBA y WNBA los quintetos pasan la comprobación en el 99–100% de los
+partidos. Para análisis de quintetos se puede filtrar por `lineups_ok` o `minutes_max_gap_s`.
 
 Each game's checks are kept in `<comp>_<season>_games.csv`, so every analysis can filter on them
 (`python -m warehouse.sql --file queries/data_quality.sql`). Coverage today: EuroLeague and EuroCup
@@ -179,7 +181,7 @@ Data belong to their owners; check each source's terms before redistributing der
       national TV per game, game context (rest, travel distance, time zones and direction, road trips, crowd,
       the 2020 bubbles) and player bios / WNBA y NBA con contexto de cada partido y biografía de jugadoras
 - [x] SQL layer (DuckDB, Parquet export), Docker image, tests and CI / Capa SQL, Docker, tests e integración continua
-- [ ] Better lineup inference for the NBA / WNBA feeds (missing substitutions) / Mejor inferencia de quintetos
+- [x] Better lineup inference for the NBA / WNBA feeds (event order, name suffixes) / Mejor inferencia de quintetos
 - [ ] Scheduled updates / Actualizaciones programadas
 - [ ] Bayesian lineup ratings (RAPM-lite) / Valoración bayesiana de quintetos
 
